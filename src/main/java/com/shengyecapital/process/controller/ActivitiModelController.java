@@ -1,4 +1,4 @@
-package com.example.springbootdemo.controller;
+package com.shengyecapital.process.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,7 +7,6 @@ import org.activiti.bpmn.converter.BpmnXMLConverter;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.editor.constants.ModelDataJsonConstants;
 import org.activiti.editor.language.json.converter.BpmnJsonConverter;
-import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
@@ -37,6 +36,7 @@ public class ActivitiModelController {
     @Autowired
     private TaskService taskService;
 
+
     /**
      * 新建一个空模型
      */
@@ -46,7 +46,7 @@ public class ActivitiModelController {
         //初始化一个空模型
         Model model = repositoryService.newModel();
         //设置一些默认信息
-        String name = "新流程";
+        String name = "test-process";
         String description = "";
         int revision = 1;
         String key = "new_process1";
@@ -121,7 +121,6 @@ public class ActivitiModelController {
         ProcessInstance process = runtimeService.startProcessInstanceByKey(keyName);
         return process.getId() + " : " + process.getProcessDefinitionId();
     }
-
 
     /**
      * 提交任务

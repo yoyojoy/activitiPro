@@ -1,4 +1,4 @@
-package com.example.springbootdemo.model;
+package com.shengyecapital.process.model;
 
 import java.util.Date;
 

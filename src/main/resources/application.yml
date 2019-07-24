@@ -10,6 +10,11 @@ spring:
     check-process-definitions: false
     process-definition-location-prefix: classpath:/processes/
     # check-process-definitions: false  #这个比较重要，不配置的话会扫描类路径下的processes下的.xml文件
+    history-level: audit
+    db-identity-used: false
+    db-history-used: true
+    activityFontName: 宋体
+    labelFontName: 宋体
   datasource:    #数据库连接信息
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.jdbc.Driver
