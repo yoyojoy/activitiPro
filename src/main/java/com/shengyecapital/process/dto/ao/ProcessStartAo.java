@@ -35,6 +35,11 @@ public class ProcessStartAo extends BaseEnvVo {
     private String businessId;
 
     /**
+     * 业务对象名称
+     */
+    private String businessName;
+
+    /**
      * 冗余客户名称
      */
     private String customerName;

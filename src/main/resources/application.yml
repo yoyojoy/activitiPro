@@ -35,6 +35,16 @@ spring:
     useGlobalDataSourceStat: true
     timeBetweenEvictionRunsMillis: 60000
     validationQuery: select 'x'
+#  redis:
+#    database: 5
+#    pool:
+#      max-active: 10
+#      max-idle: 10
+#      max-wait: -1
+#      min-idle: 0
+#    sentinel:
+#      master: mymaster
+#      nodes: redis-sentinel-node1.test.svc.k8s.syf.com:26379,redis-sentinel-node2.test.svc.k8s.syf.com:26379,redis-sentinel-node3.test.svc.k8s.syf.com:26379
 security:
   basic:
     enabled: false

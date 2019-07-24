@@ -25,9 +25,4 @@ public class ProcessConstant {
      */
     public static final String BUSINESS_NAME = "business_name";
 
-    /**
-     * 业务类别
-     */
-    public static final String BUSINESS_TYPE = "business_type";
-
 }

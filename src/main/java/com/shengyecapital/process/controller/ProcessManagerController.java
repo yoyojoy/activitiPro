@@ -1,12 +1,10 @@
 package com.shengyecapital.process.controller;
 
 import com.shengyecapital.common.dto.common.PageResult;
-import com.shengyecapital.process.dto.ao.DeployedProcessListQueryAo;
-import com.shengyecapital.process.dto.ao.DeploymentAo;
-import com.shengyecapital.process.dto.ao.ProcessStartAo;
-import com.shengyecapital.process.dto.ao.ProcessUndoQueryListAo;
+import com.shengyecapital.process.dto.ao.*;
 import com.shengyecapital.process.dto.vo.ProcessDeployedListVo;
 import com.shengyecapital.process.dto.vo.ProcessUndoListVo;
+import com.shengyecapital.process.dto.vo.RuntimeInstanceListVo;
 import com.shengyecapital.process.service.joy.ProcessService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,10 +97,24 @@ public class ProcessManagerController {
     }
 
     /**
+     * 运行时流程实例列表
+     * @return
+     */
+    @PostMapping("/process/instance/runtime/list")
+    public PageResult<RuntimeInstanceListVo> runtimeInstancesList(RuntimeInstanceListQueryAo ao) {
+        try {
+            return processService.getProcessRuntimeInstanceList(ao);
+        }catch (Exception e){
+            log.error("查询运行时流程实例列表失败, \n{}", e);
+        }
+        return null;
+    }
+
+    /**
      * 流程待办列表
      * @return
      */
-    @PostMapping("/process/undo/list")
+    @PostMapping("/process/task/undo/list")
     public PageResult<ProcessUndoListVo> findProcessDefinition(ProcessUndoQueryListAo ao) {
         try {
             return processService.getUndoProcessList(ao);
