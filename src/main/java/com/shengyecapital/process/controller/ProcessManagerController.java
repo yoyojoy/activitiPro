@@ -115,9 +115,23 @@ public class ProcessManagerController {
      * @return
      */
     @PostMapping("/process/task/undo/list")
-    public PageResult<ProcessUndoListVo> findProcessDefinition(ProcessUndoQueryListAo ao) {
+    public PageResult<ProcessUndoListVo> findProcessInstanceUndoList(ProcessUndoQueryListAo ao) {
         try {
             return processService.getUndoProcessList(ao);
+        }catch (Exception e){
+            log.error("查询流程待办列表失败, \n{}", e);
+        }
+        return null;
+    }
+
+    /**
+     * 个人任务待办列表查询
+     * @return
+     */
+    @PostMapping("/process/task/personal/list")
+    public PageResult<ProcessUndoListVo> findPersonalTaskList(ProcessUndoQueryListAo ao) {
+        try {
+            return processService.getPersonalUndoTaskList(ao);
         }catch (Exception e){
             log.error("查询流程待办列表失败, \n{}", e);
         }

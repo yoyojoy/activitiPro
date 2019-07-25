@@ -29,6 +29,7 @@ import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Task;
+import org.activiti.engine.task.TaskQuery;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -240,6 +241,66 @@ public class ProcessService {
                 //流程发起时间
                 target.setProcessStartTime(processInstance.getStartTime());
 
+                return target;
+            }).collect(Collectors.toList());
+        }
+        PageResult<ProcessUndoListVo> pageResult = new PageResult<>();
+        pageResult.setRecords(result);
+        pageResult.setTotalPages(page.getPages());
+        pageResult.setTotalRecords(page.getTotal());
+        return pageResult;
+    }
+
+    /**
+     * 个人任务列表查询
+     *
+     * @param ao
+     * @return
+     */
+    public PageResult<ProcessUndoListVo> getPersonalUndoTaskList(ProcessUndoQueryListAo ao) throws Exception {
+        if(StringUtils.isBlank(ao.getProcessStarterId())){
+            throw new ServerErrorException("查询个人待办缺少必须参数");
+        }
+        Page<ProcessUndoListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
+        List<ProcessUndoListVo> result = new ArrayList<>();
+        TaskQuery query = taskService.createTaskQuery();
+        query.taskAssignee(ao.getProcessStarterId());
+        if (StringUtils.isNotBlank(ao.getStartTime())) {
+            query.taskCreatedAfter(DateTimeUtil.parseToDate(ao.getStartTime(), DateTimeUtil.FMT_yyyyMMdd));
+        }
+        if (StringUtils.isNotBlank(ao.getEndTime())) {
+            query.taskCreatedBefore(DateTimeUtil.parseToDate(ao.getEndTime(), DateTimeUtil.FMT_yyyyMMdd));
+        }
+        if (StringUtils.isNotEmpty(ao.getCustomerName())) {
+            query.processVariableValueLikeIgnoreCase(ProcessConstant.CUSTOMER_NAME, ao.getCustomerName());
+        }
+        if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
+            query.processDefinitionNameLike(ao.getProcessDefinitionName());
+        }
+        List<Task> tasks = query.active().includeProcessVariables().orderByTaskCreateTime().asc().list();
+        if (!CollectionUtils.isEmpty(tasks)) {
+            result = tasks.stream().map(task -> {
+                ProcessUndoListVo target = new ProcessUndoListVo();
+                ProcessDefinition definition = repositoryService.createProcessDefinitionQuery().processDefinitionId(task.getProcessDefinitionId()).singleResult();
+                ProcessInstance instance = runtimeService.createProcessInstanceQuery().processInstanceId(task.getProcessInstanceId()).singleResult();
+                Map<String, Object> map = task.getProcessVariables();
+                String processStarterId = map.get(ProcessConstant.PROCESS_STARTER_ID).toString();
+                String processStarterName = map.get(ProcessConstant.PROCESS_STARTER_NAME).toString();
+                String customerName = map.get(ProcessConstant.CUSTOMER_NAME).toString();
+                //流程名称
+                target.setProcessName(definition.getName());
+                //业务ID
+                target.setBusinessId(instance.getBusinessKey());
+                //发起人ID
+                target.setProcessStarterId(processStarterId);
+                //发起人姓名
+                target.setProcessStarterName(processStarterName);
+                //客户名称
+                target.setCustomerName(customerName);
+                //流程发起时间
+                target.setProcessStartTime(task.getCreateTime());
+                //环节名称
+                target.setTaskName(task.getName());
                 return target;
             }).collect(Collectors.toList());
         }
