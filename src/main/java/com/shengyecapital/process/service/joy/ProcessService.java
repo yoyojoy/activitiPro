@@ -401,7 +401,6 @@ public class ProcessService {
 
     public PageResult<RuntimeInstanceListVo> getProcessRuntimeInstanceList(RuntimeInstanceListQueryAo ao) {
         Page<RuntimeInstanceListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
-        List<RuntimeInstanceListVo> result = new ArrayList<>();
         StringBuffer sql = new StringBuffer("select c.PROC_INST_ID_ processInstanceId, c.PROC_DEF_ID_ processDefinitionId, a.NAME_ processDefinitionName,b.NAME_ currentTaskName, c.START_TIME_ createTime,\n" +
                 "c.BUSINESS_KEY_ businessId from ACT_HI_PROCINST c LEFT JOIN ACT_HI_ACTINST t on c.PROC_INST_ID_=t.ID_\n" +
                 "LEFT JOIN ACT_RE_PROCDEF a on a.ID_=c.PROC_DEF_ID_\n" +
@@ -439,8 +438,7 @@ public class ProcessService {
         List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId)
                 .activityType("userTask").orderByHistoricActivityInstanceEndTime().desc().list();
         for (HistoricActivityInstance hai : hais) {
-            String historytaskId = hai.getTaskId();
-            List<Comment> comments = taskService.getTaskComments(historytaskId);
+            List<Comment> comments = taskService.getTaskComments(hai.getTaskId());
             if(comments!=null && comments.size()>0){
                 historyCommnets.addAll(comments);
             }
