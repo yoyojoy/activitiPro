@@ -3,11 +3,13 @@ package com.shengyecapital.process.service.joy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.google.common.collect.Lists;
 import com.shengyecapital.common.dto.common.PageResult;
 import com.shengyecapital.common.exception.ServerErrorException;
 import com.shengyecapital.common.util.DateTimeUtil;
 import com.shengyecapital.process.constant.ProcessConstant;
 import com.shengyecapital.process.dto.ao.*;
+import com.shengyecapital.process.dto.vo.ProcessCommentVo;
 import com.shengyecapital.process.dto.vo.ProcessDeployedListVo;
 import com.shengyecapital.process.dto.vo.ProcessUndoListVo;
 import com.shengyecapital.process.dto.vo.RuntimeInstanceListVo;
@@ -18,6 +20,9 @@ import org.activiti.engine.*;
 import org.activiti.engine.history.HistoricActivityInstance;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricProcessInstanceQuery;
+import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.impl.identity.Authentication;
+import org.activiti.engine.impl.persistence.entity.CommentEntity;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.impl.pvm.PvmTransition;
@@ -35,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -433,17 +439,21 @@ public class ProcessService {
      * @param processInstanceId
      * @return
      */
-    public List<Comment> getProcessComments(String processInstanceId) {
-        List<Comment> historyCommnets = new ArrayList<>();
-        List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId)
-                .activityType("userTask").orderByHistoricActivityInstanceEndTime().desc().list();
-        for (HistoricActivityInstance hai : hais) {
-            List<Comment> comments = taskService.getTaskComments(hai.getTaskId());
-            if(comments!=null && comments.size()>0){
-                historyCommnets.addAll(comments);
-            }
+    public List<ProcessCommentVo> getProcessComments(String processInstanceId) {
+        List<ProcessCommentVo> list = Lists.newArrayList();
+        List<Comment> comments = taskService.getProcessInstanceComments(processInstanceId);
+        for(Comment comment :comments){
+            CommentEntity commentEntity = (CommentEntity)comment;
+            HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().processInstanceId(commentEntity.getProcessInstanceId())
+                    .taskId(commentEntity.getTaskId()).singleResult();
+            ProcessCommentVo vo = new ProcessCommentVo();
+            vo.setComment(commentEntity.getFullMessage());
+            vo.setDealTime(commentEntity.getTime());
+            vo.setDealUserName(task.getAssignee());
+            vo.setTaskName(task.getName());
+            list.add(vo);
         }
-        return historyCommnets;
+        return list;
     }
 
     /**
@@ -451,9 +461,14 @@ public class ProcessService {
      * @param ao
      */
     public void taskProcess(CompleteTaskAo ao){
-        taskService.addComment(ao.getProcessInstanceId(), ao.getCommentType(), ao.getCommentDescription());
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
                 .processInstanceBusinessKey(ao.getBusinessId()).active().singleResult();
+        if(StringUtils.isBlank(ao.getCommentType())){
+            taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentDescription());
+        }else {
+            taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentType(), ao.getCommentDescription());
+        }
+        Authentication.setAuthenticatedUserId(ao.getDealUserId());
         taskService.setAssignee(task.getId(), ao.getDealUserId());
         taskService.complete(task.getId());
     }

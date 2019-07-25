@@ -2,6 +2,7 @@ package com.shengyecapital.process.controller;
 
 import com.shengyecapital.common.dto.common.PageResult;
 import com.shengyecapital.process.dto.ao.*;
+import com.shengyecapital.process.dto.vo.ProcessCommentVo;
 import com.shengyecapital.process.dto.vo.ProcessDeployedListVo;
 import com.shengyecapital.process.dto.vo.ProcessUndoListVo;
 import com.shengyecapital.process.dto.vo.RuntimeInstanceListVo;
@@ -146,7 +147,7 @@ public class ProcessManagerController {
      * @return
      */
     @GetMapping("/process/comment/list")
-    public List<Comment> findProcessInstanceComments(@RequestParam("processInstanceId") String processInstanceId) {
+    public List<ProcessCommentVo> findProcessInstanceComments(@RequestParam("processInstanceId") String processInstanceId) {
         return processService.getProcessComments(processInstanceId);
     }
 
