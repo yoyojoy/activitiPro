@@ -7,10 +7,12 @@ import com.shengyecapital.process.dto.vo.ProcessUndoListVo;
 import com.shengyecapital.process.dto.vo.RuntimeInstanceListVo;
 import com.shengyecapital.process.service.joy.ProcessService;
 import lombok.extern.slf4j.Slf4j;
+import org.activiti.engine.task.Comment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -139,11 +141,21 @@ public class ProcessManagerController {
     }
 
     /**
+     * 获取流程实例批注
+     * @param processInstanceId
+     * @return
+     */
+    @GetMapping("/process/comment/list")
+    public List<Comment> findProcessInstanceComments(@RequestParam("processInstanceId") String processInstanceId) {
+        return processService.getProcessComments(processInstanceId);
+    }
+
+    /**
      * 任务处理
      */
-    @PostMapping("/process/task/complete/{businessId}")
-    public void taskProcess(@PathVariable("businessId") String businessId){
-
+    @PostMapping("/process/task/complete")
+    public void taskProcess(CompleteTaskAo ao){
+        processService.taskProcess(ao);
     }
 
 }

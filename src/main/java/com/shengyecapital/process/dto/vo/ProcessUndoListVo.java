@@ -42,4 +42,9 @@ public class ProcessUndoListVo {
      */
     private Date processStartTime;
 
+    /**
+     * 流程实例ID
+     */
+    private String processInstanceId;
+
 }

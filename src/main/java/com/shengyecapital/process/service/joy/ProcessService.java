@@ -16,10 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.engine.*;
 import org.activiti.engine.history.HistoricActivityInstance;
-import org.activiti.engine.history.HistoricActivityInstanceQuery;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricProcessInstanceQuery;
-import org.activiti.engine.impl.HistoricActivityInstanceQueryProperty;
 import org.activiti.engine.impl.persistence.entity.ExecutionEntity;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.impl.pvm.PvmTransition;
@@ -28,6 +26,7 @@ import org.activiti.engine.repository.Deployment;
 import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
 import org.activiti.engine.task.TaskQuery;
 import org.activiti.image.ProcessDiagramGenerator;
@@ -240,7 +239,7 @@ public class ProcessService {
                 target.setCustomerName(customerName);
                 //流程发起时间
                 target.setProcessStartTime(processInstance.getStartTime());
-
+                target.setProcessInstanceId(processInstance.getId());
                 return target;
             }).collect(Collectors.toList());
         }
@@ -301,6 +300,8 @@ public class ProcessService {
                 target.setProcessStartTime(task.getCreateTime());
                 //环节名称
                 target.setTaskName(task.getName());
+                //实例ID
+                target.setProcessInstanceId(task.getProcessInstanceId());
                 return target;
             }).collect(Collectors.toList());
         }
@@ -426,6 +427,37 @@ public class ProcessService {
         pageResult.setTotalPages(page.getPages());
         pageResult.setTotalRecords(page.getTotal());
         return pageResult;
+    }
+
+    /**
+     * 查询某流程实例的批注列表
+     * @param processInstanceId
+     * @return
+     */
+    public List<Comment> getProcessComments(String processInstanceId) {
+        List<Comment> historyCommnets = new ArrayList<>();
+        List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId)
+                .activityType("userTask").orderByHistoricActivityInstanceEndTime().desc().list();
+        for (HistoricActivityInstance hai : hais) {
+            String historytaskId = hai.getTaskId();
+            List<Comment> comments = taskService.getTaskComments(historytaskId);
+            if(comments!=null && comments.size()>0){
+                historyCommnets.addAll(comments);
+            }
+        }
+        return historyCommnets;
+    }
+
+    /**
+     * 任务处理,并添加批注
+     * @param ao
+     */
+    public void taskProcess(CompleteTaskAo ao){
+        taskService.addComment(ao.getProcessInstanceId(), ao.getCommentType(), ao.getCommentDescription());
+        Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
+                .processInstanceBusinessKey(ao.getBusinessId()).active().singleResult();
+        taskService.setAssignee(task.getId(), ao.getDealUserId());
+        taskService.complete(task.getId());
     }
 
 }
