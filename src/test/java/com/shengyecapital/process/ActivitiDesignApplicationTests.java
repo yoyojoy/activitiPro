@@ -41,38 +41,6 @@ public class ActivitiDesignApplicationTests {
 	}
 
 	@Test
-	public void start(){
-		log.info("\n===========================================");
-		List<ProcessDefinition> dfs = repositoryService.createProcessDefinitionQuery().list();
-		log.info(dfs.size()+"");
-		log.info("\n===========================================");
-		ProcessStartAo ao = new ProcessStartAo();
-		ao.setBusinessId("1001");
-		ao.setProcessDefinitionKey("apply_process");
-		ao.setProcessStarter("1");
-		ao.setStartAndCompleteFirst(false);
-		ao.setVariablesMap(null);
-		Map<String, Object> vars = new HashMap<>();
-		if(!CollectionUtils.isEmpty(ao.getVariablesMap())) {
-			vars.putAll(ao.getVariablesMap());
-		}
-		vars.put("startUser", ao.getProcessStarter());
-		//设置开启人
-		identityService.setAuthenticatedUserId(ao.getProcessStarter());
-		ProcessInstance pi = runtimeService.startProcessInstanceByKey(ao.getProcessDefinitionKey(), ao.getBusinessId(), vars);
-		Task task = taskService.createTaskQuery().processInstanceId(pi.getId()).active().singleResult();
-		//是否完成该任务
-		if (ao.getStartAndCompleteFirst()) {
-			//查看办理人是否为空，将启动人设为办理人
-			if (task.getAssignee() == null) {
-				taskService.setAssignee(task.getId(), ao.getProcessStarter());
-			}
-			taskService.complete(task.getId());
-		}
-		log.info("流程实例Id" + pi.getId());
-	}
-
-	@Test
 	public void complete(){
 	    String taskId = "10008";
         managementService.executeCommand(new SerialCountersignAddcmd(taskId, "加签的审批人", false, runtimeService, taskService));

@@ -9,12 +9,12 @@ public class ProcessUndoQueryListAo extends BasePageDto {
     /**
      * 流程名称
      */
-    private String processName;
+    private String processDefinitionName;
 
     /**
      * 流程发起者
      */
-    private String processStarter;
+    private String processStarterId;
 
     /**
      * 客户名称

@@ -15,9 +15,14 @@ public class ProcessStartAo extends BaseEnvVo {
     private String processDefinitionKey;
 
     /**
-     * 流程发起者
+     * 流程发起者ID
      */
-    private String processStarter;
+    private String processStarterId;
+
+    /**
+     * 流程发起者姓名
+     */
+    private String processStarterName;
 
     /**
      * 是否完成第一个任务

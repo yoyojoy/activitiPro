@@ -127,8 +127,10 @@ public class ProcessService {
         if (!CollectionUtils.isEmpty(ao.getVariablesMap())) {
             vars.putAll(ao.getVariablesMap());
         }
-        //流程的发起人
-        vars.put(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarter());
+        //流程的发起人ID
+        vars.put(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
+        //流程的发起人姓名
+        vars.put(ProcessConstant.PROCESS_STARTER_NAME, ao.getProcessStarterName());
         //冗余客户名称到流程实例中
         vars.put(ProcessConstant.CUSTOMER_NAME, ao.getCustomerName());
         //业务对象名称
@@ -144,7 +146,7 @@ public class ProcessService {
         //是否完成该任务
         if (ao.getStartAndCompleteFirst()) {
             if (task.getAssignee() == null) {
-                taskService.setAssignee(task.getId(), ao.getProcessStarter());
+                taskService.setAssignee(task.getId(), ao.getProcessStarterId());
             }
             taskService.complete(task.getId());
         }
@@ -199,7 +201,7 @@ public class ProcessService {
      * @return
      */
     public PageResult<ProcessUndoListVo> getUndoProcessList(ProcessUndoQueryListAo ao) throws Exception {
-        if(StringUtils.isBlank(ao.getProcessStarter())){
+        if(StringUtils.isBlank(ao.getProcessStarterId())){
             throw new ServerErrorException("查询个人待办缺少必须参数");
         }
         Page<ProcessUndoListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
@@ -214,16 +216,16 @@ public class ProcessService {
         if (StringUtils.isNotEmpty(ao.getCustomerName())) {
             query.variableValueEquals(ProcessConstant.CUSTOMER_NAME, ao.getCustomerName());
         }
-        if (StringUtils.isNotBlank(ao.getProcessName())) {
-            query.processDefinitionName(ao.getProcessName());
+        if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
+            query.processDefinitionName(ao.getProcessDefinitionName());
         }
-        query.variableValueEquals(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarter());
-        List<HistoricProcessInstance> processInstances = query.unfinished().orderByProcessInstanceStartTime().asc().list();
+        query.variableValueEquals(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
+        List<HistoricProcessInstance> processInstances = query.unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
         if (!CollectionUtils.isEmpty(processInstances)) {
             result = processInstances.stream().map(processInstance -> {
+                ProcessUndoListVo target = new ProcessUndoListVo();
                 Map<String, Object> map = processInstance.getProcessVariables();
                 String processStarterName = map.get(ProcessConstant.PROCESS_STARTER_NAME).toString();
-                ProcessUndoListVo target = new ProcessUndoListVo();
                 String customerName = map.get(ProcessConstant.CUSTOMER_NAME).toString();
                 //流程名称
                 target.setProcessName(processInstance.getProcessDefinitionName());
