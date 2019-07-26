@@ -68,7 +68,7 @@ public class ProcessManagerController {
      * @return
      */
     @PostMapping("/process/start")
-    public void startProcess(ProcessStartAo ao) {
+    public void startProcess(@RequestBody ProcessStartAo ao) {
         try{
             processService.startProcess(ao);
         }catch (Exception e){
@@ -155,7 +155,7 @@ public class ProcessManagerController {
      * 任务处理
      */
     @PostMapping("/process/task/complete")
-    public void taskProcess(CompleteTaskAo ao){
+    public void taskProcess(@RequestBody CompleteTaskAo ao){
         processService.taskProcess(ao);
     }
 

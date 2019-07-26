@@ -153,10 +153,8 @@ public class ProcessService {
         runtimeService.updateBusinessKey(pi.getProcessInstanceId(), ao.getBusinessId());
         //是否完成该任务
         if (ao.getStartAndCompleteFirst()) {
-            if (task.getAssignee() == null) {
-                taskService.setAssignee(task.getId(), ao.getProcessStarterId());
-            }
-            taskService.complete(task.getId());
+            taskService.setAssignee(task.getId(), ao.getProcessStarterId());
+            taskService.complete(task.getId(),vars);
         }
         log.info("流程发起成功, 流程实例ID: {}", pi.getId());
     }
@@ -476,9 +474,14 @@ public class ProcessService {
         }else {
             taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentType(), ao.getCommentDescription());
         }
+        Map<String, Object> vars = task.getTaskLocalVariables();
+        if(vars == null){
+            vars = new HashMap<>();
+        }
+        vars.putAll(ao.getVariables());
         Authentication.setAuthenticatedUserId(ao.getDealUserId());
         taskService.setAssignee(task.getId(), ao.getDealUserId());
-        taskService.complete(task.getId());
+        taskService.complete(task.getId(), vars);
     }
 
 }

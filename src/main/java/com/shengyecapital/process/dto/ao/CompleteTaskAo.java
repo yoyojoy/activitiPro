@@ -2,6 +2,8 @@ package com.shengyecapital.process.dto.ao;
 
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 public class CompleteTaskAo {
 
@@ -29,5 +31,10 @@ public class CompleteTaskAo {
      * 类型
      */
     private String commentType;
+
+    /**
+     * 处理任务时携带的流程参数集合
+     */
+    private Map<String, Object> variables;
 
 }
