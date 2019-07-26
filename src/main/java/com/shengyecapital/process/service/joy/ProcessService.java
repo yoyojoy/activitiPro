@@ -209,9 +209,6 @@ public class ProcessService {
      * @return
      */
     public PageResult<ProcessUndoListVo> getUndoProcessList(ProcessUndoQueryListAo ao) throws Exception {
-        if(StringUtils.isBlank(ao.getProcessStarterId())){
-            throw new ServerErrorException("查询个人待办缺少必须参数");
-        }
         Page<ProcessUndoListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
         List<ProcessUndoListVo> result = new ArrayList<>();
         HistoricProcessInstanceQuery query = historyService.createHistoricProcessInstanceQuery();
@@ -227,12 +224,17 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
             query.processDefinitionName(ao.getProcessDefinitionName());
         }
-        query.variableValueEquals(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
-        List<HistoricProcessInstance> processInstances = query.unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
+        if(StringUtils.isNotBlank(ao.getProcessStarterId())){
+            query.variableValueEqualsIgnoreCase(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
+        }
+        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
+        List<HistoricProcessInstance> processInstances = query.processInstanceTenantId(tenantId).unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
         if (!CollectionUtils.isEmpty(processInstances)) {
             result = processInstances.stream().map(processInstance -> {
+                Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).active().singleResult();
                 ProcessUndoListVo target = new ProcessUndoListVo();
                 Map<String, Object> map = processInstance.getProcessVariables();
+                String processStarterId = map.get(ProcessConstant.PROCESS_STARTER_ID).toString();
                 String processStarterName = map.get(ProcessConstant.PROCESS_STARTER_NAME).toString();
                 String customerName = map.get(ProcessConstant.CUSTOMER_NAME).toString();
                 //流程名称
@@ -240,11 +242,12 @@ public class ProcessService {
                 //业务ID
                 target.setBusinessId(processInstance.getBusinessKey());
                 //发起人ID
-                target.setProcessStarterId(processInstance.getStartUserId());
+                target.setProcessStarterId(processStarterId);
                 //发起人姓名
                 target.setProcessStarterName(processStarterName);
                 //客户名称
                 target.setCustomerName(customerName);
+                target.setTaskName(task.getName());
                 //流程发起时间
                 target.setProcessStartTime(processInstance.getStartTime());
                 target.setProcessInstanceId(processInstance.getId());
