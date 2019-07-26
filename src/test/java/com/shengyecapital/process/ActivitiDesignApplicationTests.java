@@ -41,9 +41,10 @@ public class ActivitiDesignApplicationTests {
 	}
 
 	@Test
-	public void complete(){
-	    String taskId = "10008";
-        managementService.executeCommand(new SerialCountersignAddcmd(taskId, "加签的审批人", false, runtimeService, taskService));
+	public void test(){
+		String tenantId = "shengye-abs-dev";
+	    ProcessInstance instance = runtimeService.createProcessInstanceQuery().includeProcessVariables().processInstanceTenantId(tenantId)
+				.processInstanceNameLike("测试").singleResult();
     }
 
 }

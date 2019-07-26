@@ -87,6 +87,7 @@ public class ProcessService {
      * @throws Exception
      */
     public void deploy(DeploymentAo ao) throws Exception {
+        String tenant = generateTenantId(ao.getApplicationName(), ao.getEnv());
         MultipartFile file = ao.getFile();
         String fileName = file.getOriginalFilename();
         InputStream in = file.getInputStream();
@@ -102,21 +103,22 @@ public class ProcessService {
 
         Deployment deployment = repositoryService.createDeployment()
                 .name(processDefinitionKey).addString(fileName, xml)
-                .tenantId(generateTenantId(ao.getApplicationName(), ao.getEnv()))
+                .tenantId(tenant)
                 .deploy();
-        ///这里的设计原每个流程在同一个商户(tenantId)下只有一个流程定义KEY
-        Model model = repositoryService.createModelQuery().modelKey(processDefinitionKey).singleResult();
-        if (model != null) {
+        ///商户(tenantId)
+        Model old = repositoryService.createModelQuery().modelKey(processDefinitionKey).modelTenantId(tenant).singleResult();
+        Model model = repositoryService.newModel();
+        if (old != null) {
             //该定义KEY的流程有部署过
             model.setVersion(model.getVersion() + 1);
         } else {
-            model = repositoryService.newModel();
             model.setVersion(1);
         }
         model.setName(processDefinitionName);
         model.setKey(processDefinitionKey);
         model.setCategory(ao.getBusinessType());
         model.setDeploymentId(deployment.getId());
+        model.setTenantId(tenant);
         repositoryService.saveModel(model);
         log.info("流程部署成功, ID: {}", deployment.getId());
 
@@ -168,7 +170,7 @@ public class ProcessService {
     public PageResult<ProcessDeployedListVo> getDeployedProcessList(DeployedProcessListQueryAo ao) {
         Page<ProcessDeployedListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
         StringBuffer sql = new StringBuffer("SELECT m.id_ processDefinitionId, m.version_ version, t.DEPLOY_TIME_ deployTime, m.name_ processDefinitionName, \n" +
-                "\t\t\tm.key_ processDefinitionKey, n.category_ businessType  from (select a.* from ACT_RE_PROCDEF a RIGHT JOIN \n" +
+                "\t\t\tm.key_ processDefinitionKey, n.category_ businessType, t.ID_ deploymentId  from (select a.* from ACT_RE_PROCDEF a RIGHT JOIN \n" +
                 "\t(select MAX(VERSION_) version, KEY_ processDefKey from ACT_RE_PROCDEF GROUP BY KEY_) b\n" +
                 "\ton a.VERSION_=b.version and a.KEY_=b.processDefKey) m LEFT JOIN ACT_RE_DEPLOYMENT t on m.DEPLOYMENT_ID_=t.ID_\n" +
                 "\tLEFT JOIN ACT_RE_MODEL n on n.DEPLOYMENT_ID_=t.ID_ where 1=1 ");
@@ -406,16 +408,18 @@ public class ProcessService {
     }
 
     public PageResult<RuntimeInstanceListVo> getProcessRuntimeInstanceList(RuntimeInstanceListQueryAo ao) {
+        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
         Page<RuntimeInstanceListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
-        StringBuffer sql = new StringBuffer("select c.PROC_INST_ID_ processInstanceId, c.PROC_DEF_ID_ processDefinitionId, a.NAME_ processDefinitionName,b.NAME_ currentTaskName, c.START_TIME_ createTime,\n" +
-                "c.BUSINESS_KEY_ businessId from ACT_HI_PROCINST c LEFT JOIN ACT_HI_ACTINST t on c.PROC_INST_ID_=t.ID_\n" +
-                "LEFT JOIN ACT_RE_PROCDEF a on a.ID_=c.PROC_DEF_ID_\n" +
-                "LEFT JOIN ACT_RU_TASK b on c.PROC_INST_ID_=b.PROC_INST_ID_ and b.PROC_DEF_ID_=c.PROC_DEF_ID_ where 1=1 ");
+        StringBuffer sql = new StringBuffer("select c.PROC_INST_ID_ processInstanceId, c.PROC_DEF_ID_ processDefinitionId, a.NAME_ processDefinitionName,b.NAME_ currentTaskName, c.START_TIME_ createTime, " +
+                " c.BUSINESS_KEY_ businessId, d.TEXT_ businessName from ACT_HI_PROCINST c LEFT JOIN ACT_HI_ACTINST t on c.PROC_INST_ID_=t.ID_ " +
+                " LEFT JOIN ACT_RE_PROCDEF a on a.ID_=c.PROC_DEF_ID_ " +
+                " LEFT JOIN ACT_RU_TASK b on c.PROC_INST_ID_=b.PROC_INST_ID_ and b.PROC_DEF_ID_=c.PROC_DEF_ID_ " +
+                " LEFT JOIN ACT_HI_VARINST d on d.PROC_INST_ID_=c.PROC_INST_ID_ and d.NAME_='business_name' where c.TENANT_ID_='").append(tenantId).append("' ");
         if(StringUtils.isNotBlank(ao.getProcessDefinitionName())){
             sql.append("and a.NAME_ like concat(%,").append(ao.getProcessDefinitionName()).append(" %) ");
         }
         if(StringUtils.isNotBlank(ao.getBusinessName())){
-            sql.append("EXISTS (select 1 from ACT_HI_VARINST m where m.PROC_INST_ID_=c.PROC_INST_ID_ and m.NAME_='businessName' and m.TEXT_ like CONCAT('%',").append(ao.getBusinessName()).append(",'%')) ");
+            sql.append(" and d.TEXT_ like CONCAT('%',").append(ao.getBusinessName()).append(",'%') ");
         }
         if(StringUtils.isNotBlank(ao.getStartTime())){
             sql.append("and c.START_TIME_ >= DATE_FORMAT(").append(ao.getStartTime()).append(",'%Y-%m-%d') ");

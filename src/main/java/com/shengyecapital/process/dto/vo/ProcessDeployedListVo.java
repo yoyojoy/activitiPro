@@ -39,4 +39,9 @@ public class ProcessDeployedListVo {
      */
     private String processDefinitionId;
 
+    /**
+     * 流程部署ID
+     */
+    private String deploymentId;
+
 }
