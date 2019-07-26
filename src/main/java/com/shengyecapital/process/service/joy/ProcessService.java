@@ -284,7 +284,8 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
             query.processDefinitionNameLike(ao.getProcessDefinitionName());
         }
-        List<Task> tasks = query.active().includeProcessVariables().orderByTaskCreateTime().asc().list();
+        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
+        List<Task> tasks = query.taskTenantId(tenantId).active().includeProcessVariables().orderByTaskCreateTime().asc().list();
         if (!CollectionUtils.isEmpty(tasks)) {
             result = tasks.stream().map(task -> {
                 ProcessUndoListVo target = new ProcessUndoListVo();

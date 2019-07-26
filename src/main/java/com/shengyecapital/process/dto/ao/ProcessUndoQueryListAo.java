@@ -24,4 +24,14 @@ public class ProcessUndoQueryListAo extends BasePageDto {
     private String startTime;
 
     private String endTime;
+
+    /**
+     * 调用方项目关键key(例: shengye-pay)
+     */
+    private String applicationName;
+
+    /**
+     * 调用方环境标识key(例: 生产->prod)
+     */
+    private String env;
 }

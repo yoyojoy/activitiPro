@@ -1,5 +1,6 @@
 package com.shengyecapital.process.dto.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.util.Date;
@@ -40,6 +41,7 @@ public class ProcessUndoListVo {
     /**
      * 流程发起时间
      */
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss", timezone="GMT+8")
     private Date processStartTime;
 
     /**
