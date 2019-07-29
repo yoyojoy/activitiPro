@@ -31,4 +31,9 @@ public class ProcessCommentVo {
      * 处理意见
      */
     private String comment;
+
+    /**
+     * 决策
+     */
+    private String decision;
 }
