@@ -442,7 +442,7 @@ public class ProcessService {
             List<Comment> his = taskService.getTaskComments(task.getId(), CommentEntity.TYPE_EVENT);
             ProcessCommentVo vo = new ProcessCommentVo();
             String[] msg = commentEntity.getMessage().split("_\\|_");
-            vo.setDecision(msg[0]);
+            vo.setAction(msg[0]);
             vo.setComment(msg[1]);
             vo.setDealTime(commentEntity.getTime());
             vo.setDealUserId(task.getAssignee());
@@ -458,15 +458,15 @@ public class ProcessService {
      * @param ao
      */
     public void taskProcess(CompleteTaskAo ao){
-        if(StringUtils.isBlank(ao.getDecision())){
-            throw new ServerErrorException("决策decision不能为空");
+        if(StringUtils.isBlank(ao.getAction())){
+            throw new ServerErrorException("操作说明action不能为空");
         }
         if(StringUtils.isBlank(ao.getComment())){
-            throw new ServerErrorException("批注comment不能为空");
+            throw new ServerErrorException("批注说明comment不能为空");
         }
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
                 .processInstanceBusinessKey(ao.getBusinessId()).taskTenantId(ao.getTenantId()).active().singleResult();
-        String msg = String.format("%s_|_%s", ao.getDecision(), ao.getComment());
+        String msg = String.format("%s_|_%s", ao.getAction(), ao.getComment());
         taskService.addComment(task.getId(), ao.getProcessInstanceId(), CommentEntity.TYPE_COMMENT, msg);
         Map<String, Object> vars = task.getTaskLocalVariables();
         if(vars == null){

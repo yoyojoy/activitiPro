@@ -33,7 +33,7 @@ public class ProcessCommentVo {
     private String comment;
 
     /**
-     * 决策
+     * 操作名称
      */
-    private String decision;
+    private String action;
 }

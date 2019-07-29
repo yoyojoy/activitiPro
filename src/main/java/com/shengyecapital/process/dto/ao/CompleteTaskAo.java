@@ -39,8 +39,8 @@ public class CompleteTaskAo extends BaseEnvVo {
     private Map<String, Object> variables;
 
     /**
-     * 决策
+     * 操作
      */
-    private String decision;
+    private String action;
 
 }
