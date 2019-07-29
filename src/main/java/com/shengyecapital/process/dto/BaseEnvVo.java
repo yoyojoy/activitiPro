@@ -6,12 +6,7 @@ import lombok.Data;
 public class BaseEnvVo {
 
     /**
-     * 调用方项目关键key(例: shengye-pay)
+     * 商户ID(工作流在商户间进行隔离)
      */
-    private String applicationName;
-
-    /**
-     * 调用方环境标识key(例: 生产->prod)
-     */
-    private String env;
+    private String tenantId;
 }

@@ -76,10 +76,6 @@ public class ProcessService {
     @Autowired
     private ActivitiMapper activitiMapper;
 
-    private String generateTenantId(String applicationName, String env){
-       return String.format("%s-%s", applicationName, env);
-    }
-
     /**
      * 热部署流程
      *
@@ -87,7 +83,6 @@ public class ProcessService {
      * @throws Exception
      */
     public void deploy(DeploymentAo ao) throws Exception {
-        String tenant = generateTenantId(ao.getApplicationName(), ao.getEnv());
         MultipartFile file = ao.getFile();
         String fileName = file.getOriginalFilename();
         InputStream in = file.getInputStream();
@@ -103,10 +98,10 @@ public class ProcessService {
 
         Deployment deployment = repositoryService.createDeployment()
                 .name(processDefinitionKey).addString(fileName, xml)
-                .tenantId(tenant)
+                .tenantId(ao.getTenantId())
                 .deploy();
         ///商户(tenantId)
-        Model old = repositoryService.createModelQuery().modelKey(processDefinitionKey).modelTenantId(tenant).singleResult();
+        Model old = repositoryService.createModelQuery().modelKey(processDefinitionKey).modelTenantId(ao.getTenantId()).singleResult();
         Model model = repositoryService.newModel();
         if (old != null) {
             //该定义KEY的流程有部署过
@@ -118,7 +113,7 @@ public class ProcessService {
         model.setKey(processDefinitionKey);
         model.setCategory(ao.getBusinessType());
         model.setDeploymentId(deployment.getId());
-        model.setTenantId(tenant);
+        model.setTenantId(ao.getTenantId());
         repositoryService.saveModel(model);
         log.info("流程部署成功, ID: {}", deployment.getId());
 
@@ -130,7 +125,6 @@ public class ProcessService {
      * @param ao
      */
     public void startProcess(ProcessStartAo ao) {
-        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
         Map<String, Object> vars = new HashMap<>();
         if (!CollectionUtils.isEmpty(ao.getVariablesMap())) {
             vars.putAll(ao.getVariablesMap());
@@ -143,7 +137,7 @@ public class ProcessService {
         vars.put(ProcessConstant.CUSTOMER_NAME, ao.getCustomerName());
         //业务对象名称
         vars.put(ProcessConstant.BUSINESS_NAME, ao.getBusinessName());
-        ProcessInstance pi = runtimeService.startProcessInstanceByKeyAndTenantId(ao.getProcessDefinitionKey(), tenantId);
+        ProcessInstance pi = runtimeService.startProcessInstanceByKeyAndTenantId(ao.getProcessDefinitionKey(), ao.getTenantId());
         if (pi == null) {
             throw new ServerErrorException("发起流程失败");
         }
@@ -225,8 +219,7 @@ public class ProcessService {
         if(StringUtils.isNotBlank(ao.getProcessStarterId())){
             query.variableValueEqualsIgnoreCase(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
         }
-        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
-        List<HistoricProcessInstance> processInstances = query.processInstanceTenantId(tenantId).unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
+        List<HistoricProcessInstance> processInstances = query.processInstanceTenantId(ao.getTenantId()).unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
         if (!CollectionUtils.isEmpty(processInstances)) {
             result = processInstances.stream().map(processInstance -> {
                 Task task = taskService.createTaskQuery().processInstanceId(processInstance.getId()).active().singleResult();
@@ -285,8 +278,7 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
             query.processDefinitionNameLike(ao.getProcessDefinitionName());
         }
-        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
-        List<Task> tasks = query.taskTenantId(tenantId).active().includeProcessVariables().orderByTaskCreateTime().asc().list();
+        List<Task> tasks = query.taskTenantId(ao.getTenantId()).active().includeProcessVariables().orderByTaskCreateTime().asc().list();
         if (!CollectionUtils.isEmpty(tasks)) {
             result = tasks.stream().map(task -> {
                 ProcessUndoListVo target = new ProcessUndoListVo();
@@ -410,13 +402,12 @@ public class ProcessService {
     }
 
     public PageResult<RuntimeInstanceListVo> getProcessRuntimeInstanceList(RuntimeInstanceListQueryAo ao) {
-        String tenantId = generateTenantId(ao.getApplicationName(), ao.getEnv());
         Page<RuntimeInstanceListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
         StringBuffer sql = new StringBuffer("select c.PROC_INST_ID_ processInstanceId, c.PROC_DEF_ID_ processDefinitionId, a.NAME_ processDefinitionName,b.NAME_ currentTaskName, c.START_TIME_ createTime, " +
                 " c.BUSINESS_KEY_ businessId, d.TEXT_ businessName from ACT_HI_PROCINST c LEFT JOIN ACT_HI_ACTINST t on c.PROC_INST_ID_=t.ID_ " +
                 " LEFT JOIN ACT_RE_PROCDEF a on a.ID_=c.PROC_DEF_ID_ " +
                 " LEFT JOIN ACT_RU_TASK b on c.PROC_INST_ID_=b.PROC_INST_ID_ and b.PROC_DEF_ID_=c.PROC_DEF_ID_ " +
-                " LEFT JOIN ACT_HI_VARINST d on d.PROC_INST_ID_=c.PROC_INST_ID_ and d.NAME_='business_name' where c.TENANT_ID_='").append(tenantId).append("' ");
+                " LEFT JOIN ACT_HI_VARINST d on d.PROC_INST_ID_=c.PROC_INST_ID_ and d.NAME_='business_name' where c.TENANT_ID_='").append(ao.getTenantId()).append("' ");
         if(StringUtils.isNotBlank(ao.getProcessDefinitionName())){
             sql.append("and a.NAME_ like concat(%,").append(ao.getProcessDefinitionName()).append(" %) ");
         }
