@@ -100,11 +100,11 @@ public class ProcessService {
                 .tenantId(ao.getTenantId())
                 .deploy();
         ///商户(tenantId)
-        Model old = repositoryService.createModelQuery().modelKey(processDefinitionKey).modelTenantId(ao.getTenantId()).singleResult();
+        List<Model> olds = repositoryService.createModelQuery().modelKey(processDefinitionKey).modelTenantId(ao.getTenantId()).orderByModelVersion().desc().list();
         Model model = repositoryService.newModel();
-        if (old != null) {
+        if (!CollectionUtils.isEmpty(olds)) {
             //该定义KEY的流程有部署过
-            model.setVersion(model.getVersion() + 1);
+            model.setVersion(olds.get(0).getVersion() + 1);
         } else {
             model.setVersion(1);
         }
@@ -135,7 +135,7 @@ public class ProcessService {
         //冗余客户名称到流程实例中
         vars.put(ProcessConstant.CUSTOMER_NAME, ao.getCustomerName());
         //业务对象名称
-        vars.put(ProcessConstant.BUSINESS_NAME, ao.getBusinessName());
+        vars.put(ProcessConstant.CUSTOMER_ID, ao.getCustomerId());
         ProcessInstance pi = runtimeService.startProcessInstanceByKeyAndTenantId(ao.getProcessDefinitionKey(), ao.getTenantId());
         if (pi == null) {
             throw new ServerErrorException("发起流程失败");
@@ -144,11 +144,6 @@ public class ProcessService {
         Task task = taskService.createTaskQuery().processInstanceId(pi.getId()).active().singleResult();
         runtimeService.setVariables(task.getExecutionId(), vars);
         runtimeService.updateBusinessKey(pi.getProcessInstanceId(), ao.getBusinessId());
-        //是否完成该任务
-        if (ao.getStartAndCompleteFirst()) {
-            taskService.setAssignee(task.getId(), ao.getProcessStarterId());
-            taskService.complete(task.getId(),vars);
-        }
         log.info("流程发起成功, 流程实例ID: {}", pi.getId());
     }
 
@@ -468,7 +463,9 @@ public class ProcessService {
         if(vars == null){
             vars = new HashMap<>();
         }
-        vars.putAll(ao.getVariables());
+        if(!CollectionUtils.isEmpty(ao.getVariables())) {
+            vars.putAll(ao.getVariables());
+        }
         Authentication.setAuthenticatedUserId(ao.getDealUserId());
         taskService.setAssignee(task.getId(), ao.getDealUserId());
         taskService.complete(task.getId(), vars);

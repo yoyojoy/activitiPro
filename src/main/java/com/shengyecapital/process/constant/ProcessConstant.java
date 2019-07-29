@@ -21,8 +21,8 @@ public class ProcessConstant {
     public static final String CUSTOMER_NAME = "customer_name";
 
     /**
-     * 业务对象名称
+     * 客户ID
      */
-    public static final String BUSINESS_NAME = "business_name";
+    public static final String CUSTOMER_ID = "customer_id";
 
 }
