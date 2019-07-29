@@ -16,6 +16,11 @@ public class ProcessCommentVo {
     /**
      * 任务处理人
      */
+    private String dealUserId;
+
+    /**
+     * 任务处理人
+     */
     private String dealUserName;
 
     //任务处理时间

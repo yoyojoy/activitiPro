@@ -31,7 +31,7 @@ public class CompleteTaskAo extends BaseEnvVo {
     /**
      * 批注信息
      */
-    private String commentDescription;
+    private String comment;
 
     /**
      * 处理任务时携带的流程参数集合

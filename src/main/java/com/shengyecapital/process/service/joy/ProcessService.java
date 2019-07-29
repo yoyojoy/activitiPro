@@ -439,10 +439,12 @@ public class ProcessService {
             CommentEntity commentEntity = (CommentEntity)comment;
             HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().processInstanceId(commentEntity.getProcessInstanceId())
                     .taskId(commentEntity.getTaskId()).taskTenantId(tenantId).singleResult();
+            List<Comment> his = taskService.getTaskComments(task.getId(), CommentEntity.TYPE_EVENT);
             ProcessCommentVo vo = new ProcessCommentVo();
             vo.setComment(commentEntity.getFullMessage());
             vo.setDealTime(commentEntity.getTime());
-            vo.setDealUserName(task.getAssignee());
+            vo.setDealUserId(task.getAssignee());
+            vo.setDealUserName(!CollectionUtils.isEmpty(his) ? his.get(0).getUserId() : null);
             vo.setTaskName(task.getName());
             list.add(vo);
         }
@@ -456,7 +458,7 @@ public class ProcessService {
     public void taskProcess(CompleteTaskAo ao){
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
                 .processInstanceBusinessKey(ao.getBusinessId()).taskTenantId(ao.getTenantId()).active().singleResult();
-        taskService.addComment(task.getId(), ao.getProcessInstanceId(), CommentEntity.TYPE_COMMENT, ao.getCommentDescription());
+        taskService.addComment(task.getId(), ao.getProcessInstanceId(), CommentEntity.TYPE_COMMENT, ao.getComment());
         Map<String, Object> vars = task.getTaskLocalVariables();
         if(vars == null){
             vars = new HashMap<>();
