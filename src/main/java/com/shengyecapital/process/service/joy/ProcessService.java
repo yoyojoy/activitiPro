@@ -456,11 +456,7 @@ public class ProcessService {
     public void taskProcess(CompleteTaskAo ao){
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
                 .processInstanceBusinessKey(ao.getBusinessId()).taskTenantId(ao.getTenantId()).active().singleResult();
-        if(StringUtils.isBlank(ao.getCommentType())){
-            taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentDescription());
-        }else {
-            taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentType(), ao.getCommentDescription());
-        }
+        taskService.addComment(task.getId(), ao.getProcessInstanceId(), CommentEntity.TYPE_COMMENT, ao.getCommentDescription());
         Map<String, Object> vars = task.getTaskLocalVariables();
         if(vars == null){
             vars = new HashMap<>();

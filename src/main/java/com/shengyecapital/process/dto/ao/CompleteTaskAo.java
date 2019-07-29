@@ -34,11 +34,6 @@ public class CompleteTaskAo extends BaseEnvVo {
     private String commentDescription;
 
     /**
-     * 类型
-     */
-    private String commentType;
-
-    /**
      * 处理任务时携带的流程参数集合
      */
     private Map<String, Object> variables;
