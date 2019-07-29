@@ -438,7 +438,7 @@ public class ProcessService {
         for(Comment comment :comments){
             CommentEntity commentEntity = (CommentEntity)comment;
             HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().processInstanceId(commentEntity.getProcessInstanceId())
-                    .taskId(commentEntity.getTaskId()).processInstanceId(tenantId).singleResult();
+                    .taskId(commentEntity.getTaskId()).taskTenantId(tenantId).singleResult();
             ProcessCommentVo vo = new ProcessCommentVo();
             vo.setComment(commentEntity.getFullMessage());
             vo.setDealTime(commentEntity.getTime());
