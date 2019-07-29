@@ -27,4 +27,9 @@ public class DeployedProcessListQueryAo extends BasePageDto {
      */
     private String businessType;
 
+    /**
+     * 商户ID标识
+     */
+    private String tenantId;
+
 }

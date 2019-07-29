@@ -8,7 +8,6 @@ import com.shengyecapital.process.dto.vo.ProcessUndoListVo;
 import com.shengyecapital.process.dto.vo.RuntimeInstanceListVo;
 import com.shengyecapital.process.service.joy.ProcessService;
 import lombok.extern.slf4j.Slf4j;
-import org.activiti.engine.task.Comment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -85,8 +84,9 @@ public class ProcessManagerController {
     @GetMapping(value = "/process/file/view")
     public void getProcessXml(@RequestParam("processDefinitionId") String processDefinitionId,
                                                 @RequestParam("resourceType") String resourceType,
+                                                @RequestParam("tenantId") String tenantId,
                                                 HttpServletResponse response) {
-        processService.viewProcessDeployResource(processDefinitionId, resourceType, response);
+        processService.viewProcessDeployResource(processDefinitionId, tenantId, resourceType, response);
     }
 
     /**
@@ -147,8 +147,8 @@ public class ProcessManagerController {
      * @return
      */
     @GetMapping("/process/comment/list")
-    public List<ProcessCommentVo> findProcessInstanceComments(@RequestParam("processInstanceId") String processInstanceId) {
-        return processService.getProcessComments(processInstanceId);
+    public List<ProcessCommentVo> findProcessInstanceComments(@RequestParam("processInstanceId") String processInstanceId, @RequestParam("tenantId") String tenantId) {
+        return processService.getProcessComments(processInstanceId, tenantId);
     }
 
     /**

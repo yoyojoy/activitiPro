@@ -65,8 +65,6 @@ public class ProcessService {
     @Autowired
     private TaskService taskService;
     @Autowired
-    private IdentityService identityService;
-    @Autowired
     private HistoryService historyService;
     @Autowired
     private ProcessEngine processEngine;
@@ -154,6 +152,9 @@ public class ProcessService {
      * @return
      */
     public PageResult<ProcessDeployedListVo> getDeployedProcessList(DeployedProcessListQueryAo ao) {
+        if(StringUtils.isBlank(ao.getTenantId())){
+            throw new ServerErrorException("商户标识tenantId不能为空");
+        }
         Page<ProcessDeployedListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
         StringBuffer sql = new StringBuffer("SELECT m.id_ processDefinitionId, m.version_ version, t.DEPLOY_TIME_ deployTime, m.name_ processDefinitionName, \n" +
                 "\t\t\tm.key_ processDefinitionKey, n.category_ businessType, t.ID_ deploymentId  from (select a.* from ACT_RE_PROCDEF a RIGHT JOIN \n" +
@@ -175,6 +176,7 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getEndTime())) {
             sql.append("and t.DEPLOY_TIME_ <= DATE_FORMT(").append(ao.getEndTime()).append(", '%Y-%m-%d') ");
         }
+        sql.append("and t.TENTANT_ID_ ='").append(ao.getTenantId()).append("' order by t.DEPLOY_TIME_ DESC ");
         List<ProcessDeployedListVo> data = activitiMapper.queryDeployedProcessesList(sql.toString());
         PageResult<ProcessDeployedListVo> pageResult = new PageResult<>();
         pageResult.setRecords(data);
@@ -313,9 +315,9 @@ public class ProcessService {
      * @param definitionId
      * @return
      */
-    public void viewProcessDeployResource(String definitionId, String resourceType, HttpServletResponse response) {
+    public void viewProcessDeployResource(String definitionId, String tenantId, String resourceType, HttpServletResponse response) {
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-                .processDefinitionId(definitionId).singleResult();
+                .processDefinitionId(definitionId).processDefinitionTenantId(tenantId).singleResult();
         if (processDefinition == null) {
             throw new ServerErrorException("流程定义不存在");
         }
@@ -430,13 +432,13 @@ public class ProcessService {
      * @param processInstanceId
      * @return
      */
-    public List<ProcessCommentVo> getProcessComments(String processInstanceId) {
+    public List<ProcessCommentVo> getProcessComments(String processInstanceId, String tenantId) {
         List<ProcessCommentVo> list = Lists.newArrayList();
         List<Comment> comments = taskService.getProcessInstanceComments(processInstanceId);
         for(Comment comment :comments){
             CommentEntity commentEntity = (CommentEntity)comment;
             HistoricTaskInstance task = historyService.createHistoricTaskInstanceQuery().processInstanceId(commentEntity.getProcessInstanceId())
-                    .taskId(commentEntity.getTaskId()).singleResult();
+                    .taskId(commentEntity.getTaskId()).processInstanceId(tenantId).singleResult();
             ProcessCommentVo vo = new ProcessCommentVo();
             vo.setComment(commentEntity.getFullMessage());
             vo.setDealTime(commentEntity.getTime());
@@ -453,7 +455,7 @@ public class ProcessService {
      */
     public void taskProcess(CompleteTaskAo ao){
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
-                .processInstanceBusinessKey(ao.getBusinessId()).active().singleResult();
+                .processInstanceBusinessKey(ao.getBusinessId()).taskTenantId(ao.getTenantId()).active().singleResult();
         if(StringUtils.isBlank(ao.getCommentType())){
             taskService.addComment(task.getId(), ao.getProcessInstanceId(), ao.getCommentDescription());
         }else {
@@ -466,7 +468,7 @@ public class ProcessService {
         if(!CollectionUtils.isEmpty(ao.getVariables())) {
             vars.putAll(ao.getVariables());
         }
-        Authentication.setAuthenticatedUserId(ao.getDealUserId());
+        Authentication.setAuthenticatedUserId(ao.getDealUserName());
         taskService.setAssignee(task.getId(), ao.getDealUserId());
         taskService.complete(task.getId(), vars);
     }
