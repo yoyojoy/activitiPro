@@ -53,10 +53,10 @@ public class ProcessManagerController {
     /**
      * 删除部署的流程
      */
-    @PostMapping("/process/deploy/remove/{deployId}")
-    public void deploymentList(@PathVariable("deployId") String deployId) {
+    @PostMapping("/process/deploy/remove")
+    public void deploymentList(@RequestParam("deployId") String deployId, @RequestParam("tenantId") String tenantId) {
         try{
-            processService.removeDeployedProcess(deployId);
+            processService.removeDeployedProcess(deployId, tenantId);
         }catch (Exception e){
             log.error("查询流程部署列表失败, \n{}", e);
         }

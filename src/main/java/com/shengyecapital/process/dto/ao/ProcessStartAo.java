@@ -27,7 +27,7 @@ public class ProcessStartAo extends BaseEnvVo {
     /**
      * 发起流程设定的的参数集合
      */
-    Map<String, Object> variablesMap;
+    Map<String, Object> variables;
 
     /**
      * 绑定业务ID

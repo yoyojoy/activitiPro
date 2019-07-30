@@ -80,6 +80,12 @@ public class ProcessService {
      * @throws Exception
      */
     public void deploy(DeploymentAo ao) throws Exception {
+        if(StringUtils.isBlank(ao.getTenantId())){
+            throw new ServerErrorException("商户标识tenantId不能为空");
+        }
+        if(ao.getFile() == null){
+            throw new ServerErrorException("流程文件不能为空");
+        }
         MultipartFile file = ao.getFile();
         String fileName = file.getOriginalFilename();
         InputStream in = file.getInputStream();
@@ -92,7 +98,12 @@ public class ProcessService {
         }
         String processDefinitionKey = process.attribute("id").getValue();
         String processDefinitionName = process.attribute("name").getValue();
-
+        if(StringUtils.isBlank(processDefinitionKey)){
+            throw new ServerErrorException("流程定义id不能为空");
+        }
+        if(StringUtils.isBlank(processDefinitionName)){
+            throw new ServerErrorException("流程名称name不能为空");
+        }
         Deployment deployment = repositoryService.createDeployment()
                 .name(processDefinitionKey).addString(fileName, xml)
                 .tenantId(ao.getTenantId())
@@ -112,7 +123,7 @@ public class ProcessService {
         model.setDeploymentId(deployment.getId());
         model.setTenantId(ao.getTenantId());
         repositoryService.saveModel(model);
-        log.info("流程部署成功, ID: {}", deployment.getId());
+        log.info("商户{}部署新的流程成功, 流程定义ID: {}", ao.getTenantId(), deployment.getId());
 
     }
 
@@ -122,9 +133,21 @@ public class ProcessService {
      * @param ao
      */
     public void startProcess(ProcessStartAo ao) {
+        if(StringUtils.isBlank(ao.getBusinessId())){
+            throw new ServerErrorException("业务唯一标识businessId不能为空");
+        }
+        if(StringUtils.isBlank(ao.getProcessStarterId())){
+            throw new ServerErrorException("发起人processStarterId不能为空");
+        }
+        if(StringUtils.isBlank(ao.getProcessDefinitionKey())){
+            throw new ServerErrorException("流程唯一标识processDefinitionKey不能为空");
+        }
+        if(StringUtils.isBlank(ao.getTenantId())){
+            throw new ServerErrorException("商户标识tenantId不能为空");
+        }
         Map<String, Object> vars = new HashMap<>();
-        if (!CollectionUtils.isEmpty(ao.getVariablesMap())) {
-            vars.putAll(ao.getVariablesMap());
+        if (!CollectionUtils.isEmpty(ao.getVariables())) {
+            vars.putAll(ao.getVariables());
         }
         //流程的发起人ID
         vars.put(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
@@ -176,7 +199,7 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getEndTime())) {
             sql.append("and t.DEPLOY_TIME_ <= DATE_FORMT(").append(ao.getEndTime()).append(", '%Y-%m-%d') ");
         }
-        sql.append("and t.TENTANT_ID_ ='").append(ao.getTenantId()).append("' order by t.DEPLOY_TIME_ DESC ");
+        sql.append("and t.TENANT_ID_ ='").append(ao.getTenantId()).append("' order by t.DEPLOY_TIME_ DESC ");
         List<ProcessDeployedListVo> data = activitiMapper.queryDeployedProcessesList(sql.toString());
         PageResult<ProcessDeployedListVo> pageResult = new PageResult<>();
         pageResult.setRecords(data);
@@ -185,8 +208,12 @@ public class ProcessService {
         return pageResult;
     }
 
-    public void removeDeployedProcess(String deployId) {
+    public void removeDeployedProcess(String deployId, String tenantId) {
         //这里是否有需要进行级联的删除,包含流程定义的历史流程信息
+        Deployment deployment = repositoryService.createDeploymentQuery().deploymentId(deployId).singleResult();
+        if(deployment == null || !deployment.getTenantId().equalsIgnoreCase(tenantId)){
+            throw new ServerErrorException("流程部署不存在");
+        }
         repositoryService.deleteDeployment(deployId);
     }
 
@@ -212,8 +239,8 @@ public class ProcessService {
         if (StringUtils.isNotBlank(ao.getProcessDefinitionName())) {
             query.processDefinitionName(ao.getProcessDefinitionName());
         }
-        if(StringUtils.isNotBlank(ao.getProcessStarterId())){
-            query.variableValueEqualsIgnoreCase(ProcessConstant.PROCESS_STARTER_ID, ao.getProcessStarterId());
+        if(StringUtils.isNotBlank(ao.getUserId())){
+            query.variableValueEqualsIgnoreCase(ProcessConstant.PROCESS_STARTER_ID, ao.getUserId());
         }
         List<HistoricProcessInstance> processInstances = query.processInstanceTenantId(ao.getTenantId()).unfinished().includeProcessVariables().orderByProcessInstanceStartTime().asc().list();
         if (!CollectionUtils.isEmpty(processInstances)) {
@@ -255,13 +282,13 @@ public class ProcessService {
      * @return
      */
     public PageResult<ProcessUndoListVo> getPersonalUndoTaskList(ProcessUndoQueryListAo ao) throws Exception {
-        if(StringUtils.isBlank(ao.getProcessStarterId())){
+        if(StringUtils.isBlank(ao.getUserId())){
             throw new ServerErrorException("查询个人待办缺少必须参数");
         }
         Page<ProcessUndoListVo> page = PageHelper.startPage(ao.getPageNum(), ao.getPageSize());
         List<ProcessUndoListVo> result = new ArrayList<>();
         TaskQuery query = taskService.createTaskQuery();
-        query.taskAssignee(ao.getProcessStarterId());
+        query.taskAssignee(ao.getUserId());
         if (StringUtils.isNotBlank(ao.getStartTime())) {
             query.taskCreatedAfter(DateTimeUtil.parseToDate(ao.getStartTime(), DateTimeUtil.FMT_yyyyMMdd));
         }
@@ -341,6 +368,9 @@ public class ProcessService {
     public void viewProcessRuntimeImage(String processInstanceId, HttpServletResponse response) {
         //获取历史流程实例
         HistoricProcessInstance processInstance =  historyService.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId).singleResult();
+        if(processInstance == null){
+            throw new ServerErrorException("流程实例不存在");
+        }
         //获取流程图
         BpmnModel bpmnModel = repositoryService.getBpmnModel(processInstance.getProcessDefinitionId());
         ProcessDiagramGenerator diagramGenerator = processEngine.getProcessEngineConfiguration().getProcessDiagramGenerator();
@@ -466,9 +496,12 @@ public class ProcessService {
         }
         Task task = taskService.createTaskQuery().processInstanceId(ao.getProcessInstanceId())
                 .processInstanceBusinessKey(ao.getBusinessId()).taskTenantId(ao.getTenantId()).active().singleResult();
+        if(task == null){
+            throw new ServerErrorException("任务不存在");
+        }
         String msg = String.format("%s_|_%s", ao.getAction(), ao.getComment());
         taskService.addComment(task.getId(), ao.getProcessInstanceId(), CommentEntity.TYPE_COMMENT, msg);
-        Map<String, Object> vars = task.getTaskLocalVariables();
+        Map<String, Object> vars = task.getProcessVariables();
         if(vars == null){
             vars = new HashMap<>();
         }
